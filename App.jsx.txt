@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Distribuição de Casos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Estilos CSS embutidos do seu App.jsx podem ser colocados aqui ou em um arquivo CSS separado */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f3f4f6;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #1f2937;
+        }
+        th {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        td {
+            background-color: #ffffff;
+        }
+        tr:hover td {
+            background-color: #f9fafb;
+        }
+        .filled-judge-row td {
+            background-color: #d3d3d3 !important;
+        }
+        .highlighted-row td {
+            background-color: #808080 !important;
+        }
+        input[type="text"], input[type="date"], select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        .scrollable-table-container {
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .filter-input {
+            width: calc(100% - 16px);
+            padding: 4px;
+            margin-top: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #333;
+            background-color: #f9fafb;
+        }
+        .filter-select {
+            width: calc(100% - 16px);
+            padding: 4px;
+            margin-top: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #333;
+            background-color: #f9fafb;
+        }
+        .sortable-header {
+            cursor: pointer;
+            position: relative;
+            padding-right: 20px;
+        }
+        .sort-icon {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7em;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-weight: 600;
+            color: #4b5563;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button:hover {
+            color: #1f2937;
+            border-bottom-color: #9ca3af;
+        }
+        .tab-button.active {
+            color: #1f2937;
+            border-bottom-color: #1f2937;
+        }
+        .tab-content {
+            display: none;
+            padding-top: 1rem;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #judgeStatsPanel {
+            background-color: #e6f7ff;
+            border: 1px solid #b3e0ff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #judgeStatsPanel h2 {
+            color: #0056b3;
+            margin-bottom: 1rem;
+        }
+        #judgeStatsPanel ul {
+            list-style: none;
+            padding: 0;
+        }
+        #judgeStatsPanel ul li {
+            background-color: #ffffff;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e0f2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        #judgeStatsPanel ul li strong {
+            color: #333;
+        }
+        #judgeStatsPanel ul li span {
+            color: #666;
+            font-weight: 500;
+        }
+        .duplicate-rdo {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: "Inter", sans-serif;
+                color: #000;
+                background-color: #fff !important;
+            }
+            body > *:not(.print-container) {
+                display: none !important;
+            }
+            .print-container {
+                display: block !important;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .print-container table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .print-container th, .print-container td {
+                border: 1px solid #000;
+                padding: 8px;
+                text-align: left;
+                background-color: #fff !important;
+                color: #000 !important;
+            }
+            .print-container thead {
+                background-color: #eee !important;
+            }
+            .print-container .highlighted-row td,
+            .print-container .filled-judge-row td {
+                background-color: #f0f0f0 !important;
+            }
+            .print-container button, .print-container input, .print-container select, .print-container textarea {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React CDN (para desenvolvimento, não produção) -->
+    <script src="https://unpkg.com/react/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js"></script>
+    <!-- Babel CDN para transpilar JSX no navegador (apenas para desenvolvimento) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        // Dados dos juízes e suas salas (agora gerenciado localmente)
+        const initialJudgesData = [
+            { id: 'j1', name: "Juiz A", room: "Sala 101" },
+            { id: 'j2', name: "Juiz B", room: "Sala 102" },
+            { id: 'j3', name: "Juiz C", room: "Sala 103" },
+            { id: 'j4', name: "Juiz D", room: "Sala 104" },
+            { id: 'j5', name: "Juiz E", room: "Sala 105" },
+            { id: 'j6', name: "Juiz F", room: "Sala 106" },
+            { id: 'j7', name: "Juiz G", room: "Sala 107" },
+            { id: 'j8', name: "Juiz H", room: null },
+            { id: 'j9', name: "Juiz I", room: null },
+            { id: 'j10', name: "Juiz J", room: null },
+            { id: 'j11', name: "Juiz K", room: null },
+            { id: 'j12', name: "Juiz L", room: null },
+        ];
+
+        // Definição das colunas da planilha de distribuição para fácil referência
+        const distributionColumns = [
+            { name: 'SALA', type: 'text', readOnly: true },
+            { name: 'JUIZ(A)', type: 'select' },
+            { name: 'ITEM', type: 'text' },
+            { name: 'NOME', type: 'text' },
+            { name: 'DATA', type: 'text' },
+            { name: 'RDO', type: 'text' },
+            { name: 'DP', type: 'text' },
+            { name: 'ART', type: 'text' },
+            { name: 'CDP', type: 'text' },
+            { name: 'RG', type: 'text' },
+            { name: 'REI', type: 'text' },
+            { name: 'CAPTURAS', type: 'checkbox' },
+            { name: 'OFICIO ENTREGUE', type: 'checkbox' }
+        ];
+
+        // Encontra o índice das colunas relevantes para a lógica
+        const itemColumnIndex = distributionColumns.findIndex(col => col.name === 'ITEM');
+        const cdpColumnIndex = distributionColumns.findIndex(col => col.name === 'CDP');
+        const judgeColumnIndex = distributionColumns.findIndex(col => col.name === 'JUIZ(A)');
+        const capturasColumnIndex = distributionColumns.findIndex(col => col.name === 'CAPTURAS');
+        const rdoColumnIndex = distributionColumns.findIndex(col => col.name === 'RDO');
+
+        // Verifica se os índices foram encontrados (apenas para depuração)
+        if (itemColumnIndex === -1) console.error("Erro: Coluna 'ITEM' não encontrada.");
+        if (cdpColumnIndex === -1) console.error("Erro: Coluna 'CDP' não encontrada.");
+        if (judgeColumnIndex === -1) console.error("Erro: Coluna 'JUIZ(A)' não encontrada.");
+        if (capturasColumnIndex === -1) console.error("Erro: Coluna 'CAPTURAS' não encontrada.");
+        if (rdoColumnIndex === -1) console.error("Erro: Coluna 'RDO' não encontrada.");
+
+        // Define a ordem dos campos no texto que será colado (cada linha é um campo)
+        const pastedDataFieldNames = [
+            'ITEM', 'NOME', 'DATA', 'RDO', 'DP', 'ART', 'CDP', 'RG', 'REI'
+        ];
+        const fieldsPerRecord = pastedDataFieldNames.length;
+
+        // Mapeia os nomes dos campos colados para seus índices na `distributionColumns`
+        const pastedFieldNameToColumnIndex = {};
+        pastedDataFieldNames.forEach((fieldName, pastedIndex) => {
+            const colIndex = distributionColumns.findIndex(col => col.name === fieldName);
+            if (colIndex !== -1) {
+                pastedFieldNameToColumnIndex[pastedIndex] = colIndex;
+            } else {
+                console.error(`Campo "${fieldName}" no formato de colagem não encontrado nas colunas de distribuição.`);
+            }
+        });
+
+        // --- Componentes Reutilizáveis ---
+
+        // Componente para os botões de aba
+        const TabButtons = ({ activeTab, setActiveTab }) => (
+            <div className="tab-buttons">
+                <button className={`tab-button ${activeTab === 'main-spreadsheet' ? 'active' : ''}`} onClick={() => setActiveTab('main-spreadsheet')} data-tab="main-spreadsheet">Planilha de Distribuição</button>
+                <button className={`tab-button ${activeTab === 'manage-judges' ? 'active' : ''}`} onClick={() => setActiveTab('manage-judges')} data-tab="manage-judges">Gerenciar Juízes</button>
+                <button className={`tab-button ${activeTab === 'judge-statistics' ? 'active' : ''}`} onClick={() => setActiveTab('judge-statistics')} data-tab="judge-statistics">Estatísticas</button>
+                <button className={`tab-button ${activeTab === 'print-tab' ? 'active' : ''}`} onClick={() => setActiveTab('print-tab')} data-tab="print-tab">Impressão</button>
+            </div>
+        );
+
+        // Componente para a área de colagem de dados
+        const PasteArea = ({ pasteTextAreaRef, handleProcessPaste }) => (
+            <div className="mb-8 p-4 bg-gray-100 rounded-lg shadow-md">
+                <h2 className="text-2xl font-semibold text-gray-700 mb-4 text-center">Colar Dados Brutos Aqui</h2>
+                <textarea ref={pasteTextAreaRef} rows="5" className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Cole seus dados aqui. Cada campo deve estar em uma linha separada, e cada registro (conjunto de 9 campos) deve seguir a ordem: ITEM, NOME, DATA, RDO, DP, ART, CDP, RG, REI."></textarea>
+                <button onClick={handleProcessPaste} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out w-full">
+                    Processar e Colar na Planilha
+                </button>
+            </div>
+        );
+
+        // Componente para uma linha individual da planilha
+        const SpreadsheetRow = ({ rowData, rowIndex, distributionColumns, judgesData, updateSpreadsheetRow, generateCaseSummary, deleteSpreadsheetRow, getRowClass, duplicateRDOsSet }) => {
+            return (
+                <tr className={`transition-colors duration-200 ease-in-out ${getRowClass(rowData)}`}>
+                    {distributionColumns.map((colInfo) => (
+                        <td key={colInfo.name} className={`px-4 py-2 whitespace-nowrap text-sm text-gray-900 ${colInfo.name === 'RDO' && duplicateRDOsSet.has(rowData['RDO']?.trim()) ? 'duplicate-rdo' : ''}`}>
+                            {colInfo.type === 'checkbox' ? (
+                                <input
+                                    type="checkbox"
+                                    checked={rowData[colInfo.name] === 'SIM'}
+                                    className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                                    onChange={(e) => updateSpreadsheetRow(rowIndex, colInfo.name, e.target.checked ? 'SIM' : 'NÃO')}
+                                />
+                            ) : colInfo.type === 'select' ? (
+                                <select
+                                    value={rowData[colInfo.name]}
+                                    className="form-select block w-full rounded-md shadow-sm"
+                                    onChange={(e) => updateSpreadsheetRow(rowIndex, colInfo.name, e.target.value)}
+                                >
+                                    <option value="">Selecione o Juiz(a)</option>
+                                    {judgesData.map(judge => (
+                                        <option key={judge.id} value={judge.name}>{judge.name}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type={colInfo.type}
+                                    placeholder={colInfo.name}
+                                    value={rowData[colInfo.name]}
+                                    readOnly={colInfo.readOnly}
+                                    className={`w-full ${colInfo.readOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    onChange={(e) => updateSpreadsheetRow(rowIndex, colInfo.name, e.target.value)}
+                                />
+                            )}
+                        </td>
+                    ))}
+                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900" style={{ minWidth: '150px' }}>
+                        <button onClick={() => generateCaseSummary(rowData)} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-2 rounded-lg shadow-md transition duration-300 ease-in-out text-xs mr-2">
+                            Gerar Resumo do Caso ✨
+                        </button>
+                        <button onClick={() => deleteSpreadsheetRow(rowIndex)} className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-lg shadow-md transition duration-300 ease-in-out text-xs">
+                            Excluir
+                        </button>
+                    </td>
+                </tr>
+            );
+        };
+
+        // Componente para a tabela principal da planilha
+        const SpreadsheetTable = ({
+            filteredAndSortedSpreadsheetData,
+            distributionColumns,
+            handleSort,
+            sortConfig,
+            handleFilterChange,
+            filterValues,
+            judgesData,
+            updateSpreadsheetRow,
+            generateCaseSummary,
+            deleteSpreadsheetRow,
+            getRowClass,
+            duplicateRDOsSet,
+            handleAddRow // Passado para o botão de adicionar linha
+        }) => {
+            return (
+                <div className="mb-6">
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">Planilha de Distribuição</h2>
+                    <button onClick={handleAddRow} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out mb-4">
+                        Adicionar Nova Linha
+                    </button>
+                    <div className="scrollable-table-container">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-700 text-white">
+                                <tr>
+                                    {distributionColumns.map((col, colIndex) => (
+                                        <th key={col.name} className={`px-4 py-2 text-xs font-medium uppercase tracking-wider ${colIndex === 0 ? 'rounded-tl-lg' : ''} ${colIndex === distributionColumns.length - 1 ? 'rounded-tr-lg' : ''} ${col.type !== 'text' ? '' : 'sortable-header'}`} onClick={() => handleSort(col.name)}>
+                                            {col.name} {col.type !== 'text' ? '' : <i className={`fas fa-sort sort-icon ${sortConfig.key === col.name ? (sortConfig.direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : ''}`}></i>}
+                                            {col.type === 'text' && (
+                                                <input type="text" className="filter-input" data-filter-column={col.name} placeholder={`Filtrar ${col.name}`} onChange={(e) => handleFilterChange(col.name, e.target.value)} value={filterValues[col.name]} />
+                                            )}
+                                            {(col.name === 'JUIZ(A)' || col.name === 'CAPTURAS' || col.name === 'OFICIO ENTREGUE') && (
+                                                <select className="filter-select" data-filter-column={col.name} onChange={(e) => handleFilterChange(col.name, e.target.value)} value={filterValues[col.name]}>
+                                                    <option value="">Todos</option>
+                                                    {col.name === 'JUIZ(A)' && judgesData.map(judge => (
+                                                        <option key={judge.id} value={judge.name}>{judge.name}</option>
+                                                    ))}
+                                                    {(col.name === 'CAPTURAS' || col.name === 'OFICIO ENTREGUE') && (
+                                                        <>
+                                                            <option value="SIM">Sim</option>
+                                                            <option value="NÃO">Não</option>
+                                                        </>
+                                                    )}
+                                                </select>
+                                            )}
+                                        </th>
+                                    ))}
+                                    <th className="px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-tr-lg" style={{ minWidth: '150px' }}>AÇÕES</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredAndSortedSpreadsheetData.map((rowData, rowIndex) => (
+                                    <SpreadsheetRow
+                                        key={rowIndex}
+                                        rowData={rowData}
+                                        rowIndex={rowIndex}
+                                        distributionColumns={distributionColumns}
+                                        judgesData={judgesData}
+                                        updateSpreadsheetRow={updateSpreadsheetRow}
+                                        generateCaseSummary={generateCaseSummary}
+                                        deleteSpreadsheetRow={deleteSpreadsheetRow}
+                                        getRowClass={getRowClass}
+                                        duplicateRDOsSet={duplicateRDOsSet}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente para uma linha individual da tabela de juízes
+        const JudgeRow = ({ judge, index, updateJudge }) => (
+            <tr key={judge.id} className="hover:bg-blue-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <input
+                        type="text"
+                        value={judge.name}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        onChange={(e) => updateJudge(index, 'name', e.target.value)}
+                    />
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <input
+                        type="text"
+                        value={judge.room || ''}
+                        className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        onChange={(e) => updateJudge(index, 'room', e.target.value === '' ? null : e.target.value)}
+                    />
+                </td>
+            </tr>
+        );
+
+        // Componente para a seção de gerenciamento de juízes
+        const ManageJudges = ({ judgesData, updateJudge, newJudgeNameRef, newJudgeRoomRef, handleAddJudge }) => (
+            <div id="manage-judges" className="tab-content active">
+                <div className="mb-8 p-4 bg-blue-50 rounded-lg shadow-md">
+                    <h2 className="text-2xl font-semibold text-blue-800 mb-4 text-center">Juízes e Salas Atribuídas (Editável)</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-blue-200 rounded-lg overflow-hidden">
+                            <thead className="bg-blue-600 text-white">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider rounded-tl-lg">Juiz(a)</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider rounded-tr-lg">Sala</th>
+                                </tr>
+                            </thead>
+                            <tbody id="judgesTableBody" className="bg-white divide-y divide-blue-200">
+                                {judgesData.map((judge, index) => (
+                                    <JudgeRow key={judge.id} judge={judge} index={index} updateJudge={updateJudge} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="mb-8 p-4 bg-purple-50 rounded-lg shadow-md">
+                    <h2 className="text-2xl font-semibold text-purple-800 mb-4 text-center">Adicionar Novo(a) Juiz(a)</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label htmlFor="newJudgeName" className="block text-sm font-medium text-gray-700">Nome do Juiz(a):</label>
+                            <input type="text" id="newJudgeName" ref={newJudgeNameRef} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500" />
+                        </div>
+                        <div>
+                            <label htmlFor="newJudgeRoom" className="block text-sm font-medium text-gray-700">Número da Sala:</label>
+                            <input type="text" id="newJudgeRoom" ref={newJudgeRoomRef} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500" />
+                        </div>
+                    </div>
+                    <button onClick={handleAddJudge} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out w-full">
+                        Adicionar Juiz(a)
+                    </button>
+                </div>
+            </div>
+        );
+
+        // Componente para a seção de estatísticas do juiz
+        const JudgeStatistics = ({ judgeStatistics }) => (
+            <div id="judge-statistics" className="tab-content active">
+                <div id="judgeStatsPanel" className="mb-8">
+                    <h2 className="text-xl font-semibold text-center">Estatísticas por Juiz</h2>
+                    <ul id="statsList">
+                        {Object.keys(judgeStatistics).filter(judgeName => {
+                            const stats = judgeStatistics[judgeName];
+                            return stats.capturas > 0 || stats.flagrantes > 0 || stats.multiplos > 0;
+                        }).length > 0 ? (
+                            Object.keys(judgeStatistics).map(judgeName => {
+                                const stats = judgeStatistics[judgeName];
+                                return (
+                                    <li key={judgeName}>
+                                        <strong>{judgeName}:</strong>
+                                        <span>Capturas: {stats.capturas}</span>
+                                        <span>Flagrantes: {stats.flagrantes}</span>
+                                        <span>Múltiplos: {stats.multiplos}</span>
+                                    </li>
+                                );
+                            })
+                        ) : (
+                            <p className="text-center text-gray-600 mt-4">Nenhum dado para exibir estatísticas.</p>
+                        )}
+                    </ul>
+                </div>
+            </div>
+        );
+
+        // Componente para a aba de impressão
+        const PrintTab = ({ printJudgeSelectRef, judgesData, handlePrint }) => (
+            <div id="print-tab" className="tab-content active">
+                <div className="mb-8 p-4 bg-green-50 rounded-lg shadow-md">
+                    <h2 className="text-2xl font-semibold text-green-800 mb-4 text-center">Imprimir Planilha por Juiz</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label htmlFor="printJudgeSelect" className="block text-sm font-medium text-gray-700">Selecione o Juiz(a):</label>
+                            <select id="printJudgeSelect" ref={printJudgeSelectRef} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500">
+                                <option value="">Selecione um Juiz(a)</option>
+                                {judgesData.filter(judge => judge.room).map(judge => (
+                                    <option key={judge.id} value={judge.name}>{judge.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <button onClick={handlePrint} className="mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out w-full">
+                                Imprimir Planilha
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // Componente para o modal de resumo do caso
+        const CaseSummaryModal = ({ showModal, closeModal, summaryContent }) => (
+            showModal && (
+                <div id="caseSummaryModal" className="modal" style={{ display: 'flex' }}>
+                    <div className="modal-content">
+                        <span id="closeModalButton" className="close-button" onClick={closeModal}>&times;</span>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Resumo do Caso</h3>
+                        <div id="summaryContent" className="text-gray-700" dangerouslySetInnerHTML={{ __html: summaryContent }}>
+                        </div>
+                    </div>
+                </div>
+            )
+        );
+
+        // --- Componente Principal App ---
+        function App() {
+            const [activeTab, setActiveTab] = React.useState('main-spreadsheet');
+            const [judgesData, setJudgesData] = React.useState(initialJudgesData);
+            const [spreadsheetData, setSpreadsheetData] = React.useState(() => {
+                const initialRow = {};
+                distributionColumns.forEach(col => {
+                    initialRow[col.name] = '';
+                    if (col.type === 'checkbox') {
+                        initialRow[col.name] = 'NÃO';
+                    }
+                });
+                return [initialRow];
+            });
+            const [showModal, setShowModal] = React.useState(false);
+            const [summaryContent, setSummaryContent] = React.useState('');
+            const [filterValues, setFilterValues] = React.useState(
+                distributionColumns.reduce((acc, col) => ({ ...acc, [col.name]: '' }), {})
+            );
+            const [sortConfig, setSortConfig] = React.useState({ key: null, direction: 'asc' });
+
+            const pasteTextAreaRef = React.useRef(null);
+            const newJudgeNameRef = React.useRef(null);
+            const newJudgeRoomRef = React.useRef(null);
+            const printJudgeSelectRef = React.useRef(null);
+
+            const openModal = () => setShowModal(true);
+            const closeModal = () => {
+                setShowModal(false);
+                setSummaryContent('');
+            };
+
+            const addEmptyDistributionRow = () => {
+                const newRowData = {};
+                distributionColumns.forEach(col => {
+                    newRowData[col.name] = '';
+                    if (col.type === 'checkbox') {
+                        newRowData[col.name] = 'NÃO';
+                    }
+                });
+                setSpreadsheetData(prevData => [...prevData, newRowData]);
+            };
+
+            const handleAddRow = () => {
+                addEmptyDistributionRow();
+            };
+
+            const updateSpreadsheetRow = (rowIndex, fieldName, value) => {
+                setSpreadsheetData(prevData => {
+                    const newData = [...prevData];
+                    newData[rowIndex] = { ...newData[rowIndex], [fieldName]: value };
+
+                    if (fieldName === 'JUIZ(A)') {
+                        const selectedJudge = judgesData.find(judge => judge.name === value);
+                        newData[rowIndex]['SALA'] = selectedJudge ? selectedJudge.room || '' : '';
+                    }
+                    return newData;
+                });
+            };
+
+            const deleteSpreadsheetRow = (rowIndex) => {
+                setSpreadsheetData(prevData => {
+                    const newData = [...prevData];
+                    newData.splice(rowIndex, 1);
+                    return newData;
+                });
+            };
+
+            const handleProcessPaste = () => {
+                const pastedText = pasteTextAreaRef.current.value;
+                let processedText = pastedText.replace(/[\r\n]+/g, '|');
+                let rawLines = processedText.split('|').filter(line => line !== '');
+
+                let currentPastedLineOffset = 0;
+                let currentSpreadsheetIndex = 0;
+                const newSpreadsheetData = [...spreadsheetData];
+
+                while (currentPastedLineOffset < rawLines.length) {
+                    if (currentPastedLineOffset + fieldsPerRecord > rawLines.length) {
+                        console.warn("Dados colados incompletos para o último registro. Colagem interrompida.");
+                        break;
+                    }
+
+                    let rowDataToSave = {};
+                    for (let i = 0; i < fieldsPerRecord; i++) {
+                        let cellValue = rawLines[currentPastedLineOffset + i];
+                        const targetColIndex = pastedFieldNameToColumnIndex[i];
+                        if (targetColIndex !== undefined && targetColIndex < distributionColumns.length) {
+                            const targetColInfo = distributionColumns[targetColIndex];
+                            cellValue = cellValue.replace(/\s\s+/g, ' ').trim();
+                            if (targetColInfo.name === 'CDP' && cellValue === '') {
+                                cellValue = '-';
+                            }
+                            if (targetColInfo.type === 'checkbox') {
+                                rowDataToSave[targetColInfo.name] = (cellValue.toLowerCase() === 'sim' || cellValue.toLowerCase() === 'true' || cellValue.toLowerCase() === 'x' || cellValue === '1') ? 'SIM' : 'NÃO';
+                            } else {
+                                rowDataToSave[targetColInfo.name] = cellValue;
+                            }
+                        }
+                    }
+
+                    if (rowDataToSave['JUIZ(A)']) {
+                        const selectedJudge = judgesData.find(judge => judge.name === rowDataToSave['JUIZ(A)']);
+                        rowDataToSave['SALA'] = selectedJudge ? selectedJudge.room || '' : '';
+                    }
+
+                    if (currentSpreadsheetIndex < newSpreadsheetData.length) {
+                        newSpreadsheetData[currentSpreadsheetIndex] = { ...newSpreadsheetData[currentSpreadsheetIndex], ...rowDataToSave };
+                    } else {
+                        newSpreadsheetData.push(rowDataToSave);
+                    }
+
+                    currentPastedLineOffset += fieldsPerRecord;
+                    currentSpreadsheetIndex++;
+                }
+
+                if (currentSpreadsheetIndex < newSpreadsheetData.length) {
+                    newSpreadsheetData.splice(currentSpreadsheetIndex);
+                }
+
+                setSpreadsheetData(newSpreadsheetData);
+                pasteTextAreaRef.current.value = '';
+            };
+
+            const handleAddJudge = () => {
+                const name = newJudgeNameRef.current.value.trim();
+                const room = newJudgeRoomRef.current.value.trim();
+
+                if (name === '') {
+                    console.error('Por favor, insira o nome do Juiz(a).');
+                    return;
+                }
+
+                setJudgesData(prevJudges => [
+                    ...prevJudges,
+                    { id: `j${prevJudges.length + 1}`, name: name, room: room === '' ? null : room }
+                ]);
+                
+                newJudgeNameRef.current.value = '';
+                newJudgeRoomRef.current.value = '';
+            };
+
+            const updateJudge = (index, fieldName, value) => {
+                setJudgesData(prevJudges => {
+                    const newJudges = [...prevJudges];
+                    newJudges[index] = { ...newJudges[index], [fieldName]: value };
+                    return newJudges;
+                });
+            };
+
+            const generateCaseSummary = async (rowData) => {
+                openModal();
+                setSummaryContent('<div className="loading-spinner"></div><p className="text-center mt-4">Gerando resumo do caso...</p>');
+
+                const prompt = `Com base nos seguintes detalhes de um caso, forneça um resumo conciso (máximo de 3 frases) focado nos aspectos mais importantes para a distribuição judicial. Se algum campo estiver vazio ou "N/A", ignore-o no resumo.
+
+                Detalhes do Caso:
+                Item: ${rowData['ITEM']}
+                Nome: ${rowData['NOME']}
+                Data: ${rowData['DATA']}
+                RDO: ${rowData['RDO']}
+                DP: ${rowData['DP']}
+                ART: ${rowData['ART']}
+                CDP: ${rowData['CDP']}
+                RG: ${rowData['RG']}
+                REI: ${rowData['REI']}`;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // A chave da API será fornecida pelo ambiente Canvas
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        setSummaryContent(`<p>${text}</p>`);
+                    } else {
+                        setSummaryContent('<p className="text-red-500">Não foi possível gerar o resumo do caso. Tente novamente.</p>');
+                        console.error("Estrutura de resposta inesperada da API Gemini:", result);
+                    }
+                } catch (error) {
+                    setSummaryContent('<p className="text-red-500">Ocorreu um erro ao conectar com a API Gemini.</p>');
+                    console.error("Erro ao chamar a API Gemini:", error);
+                }
+            };
+
+            const handleFilterChange = (columnName, value) => {
+                setFilterValues(prevFilters => ({
+                    ...prevFilters,
+                    [columnName]: value.toLowerCase().trim()
+                }));
+            };
+
+            const handleSort = (columnName) => {
+                setSortConfig(prevSortConfig => {
+                    let direction = 'asc';
+                    if (prevSortConfig.key === columnName && prevSortConfig.direction === 'asc') {
+                        direction = 'desc';
+                    }
+                    return { key: columnName, direction };
+                });
+            };
+
+            const filteredAndSortedSpreadsheetData = React.useMemo(() => {
+                let sortableItems = [...spreadsheetData];
+
+                sortableItems = sortableItems.filter(rowData => {
+                    let rowMatchesFilters = true;
+                    for (const colName in filterValues) {
+                        const filterValue = filterValues[colName];
+                        if (filterValue !== '') {
+                            const colInfo = distributionColumns.find(col => col.name === colName);
+                            let cellValue = '';
+                            if (colInfo.type === 'checkbox') {
+                                cellValue = rowData[colName] === 'SIM' ? 'sim' : 'não';
+                            } else if (colInfo.type === 'select') {
+                                cellValue = rowData[colName] ? rowData[colName].toLowerCase().trim() : '';
+                            } else {
+                                cellValue = rowData[colName] ? rowData[colName].toLowerCase().trim() : '';
+                            }
+
+                            if (!cellValue.includes(filterValue)) {
+                                rowMatchesFilters = false;
+                                break;
+                            }
+                        }
+                    }
+                    return rowMatchesFilters;
+                });
+
+                if (sortConfig.key) {
+                    sortableItems.sort((rowA, rowB) => {
+                        let valueA = rowA[sortConfig.key];
+                        let valueB = rowB[sortConfig.key];
+
+                        const columnInfo = distributionColumns.find(col => col.name === sortConfig.key);
+
+                        if (sortConfig.key === 'ITEM' || sortConfig.key === 'REI') {
+                            valueA = parseFloat(valueA) || 0;
+                            valueB = parseFloat(valueB) || 0;
+                        } else if (sortConfig.key === 'DATA') {
+                            const parseDate = (dateString) => {
+                                const parts = dateString.split('/');
+                                return parts.length === 3 ? new Date(parts[2], parts[1] - 1, parts[0]) : new Date(0);
+                            };
+                            valueA = parseDate(valueA);
+                            valueB = parseDate(valueB);
+                        } else if (columnInfo && columnInfo.type === 'checkbox') {
+                            valueA = valueA === 'SIM' ? 1 : 0;
+                            valueB = valueB === 'SIM' ? 1 : 0;
+                        } else {
+                            valueA = String(valueA).toLowerCase();
+                            valueB = String(valueB).toLowerCase();
+                        }
+
+                        let comparison = 0;
+                        if (valueA > valueB) {
+                            comparison = 1;
+                        } else if (valueA < valueB) {
+                            comparison = -1;
+                        }
+
+                        return (sortConfig.direction === 'asc') ? comparison : -comparison;
+                    });
+                }
+                return sortableItems;
+            }, [spreadsheetData, filterValues, sortConfig]);
+
+            const judgeStatistics = React.useMemo(() => {
+                const stats = {};
+
+                judgesData.forEach(judge => {
+                    if (judge.room) {
+                        stats[judge.name.trim()] = {
+                            capturas: 0,
+                            flagrantes: 0,
+                            rdos: []
+                        };
+                    }
+                });
+
+                spreadsheetData.forEach(rowData => {
+                    const assignedJudgeName = rowData['JUIZ(A)'] ? rowData['JUIZ(A)'].trim() : '';
+                    const isCaptura = rowData['CAPTURAS'] === 'SIM';
+                    const rdoValue = rowData['RDO'] ? rowData['RDO'].trim() : '';
+
+                    const foundJudgeInJudgesData = judgesData.find(judge => judge.name.trim() === assignedJudgeName && judge.room);
+
+                    if (foundJudgeInJudgesData) {
+                        const judgeStats = stats[assignedJudgeName];
+                        if (judgeStats) {
+                            if (isCaptura) {
+                                judgeStats.capturas++;
+                            } else {
+                                judgeStats.flagrantes++;
+                            }
+                            if (rdoValue !== '') {
+                                judgeStats.rdos.push(rdoValue);
+                            }
+                        }
+                    }
+                });
+
+                for (const judgeName in stats) {
+                    const judgeStats = stats[judgeName];
+                    const rdoCounts = {};
+                    judgeStats.rdos.forEach(rdo => {
+                        rdoCounts[rdo] = (rdoCounts[rdo] || 0) + 1;
+                    });
+
+                    let multiplosCount = 0;
+                    for (const rdo in rdoCounts) {
+                        if (rdoCounts[rdo] >= 2) {
+                            multiplosCount++;
+                        }
+                    }
+                    judgeStats.multiplos = multiplosCount;
+                }
+                return stats;
+            }, [spreadsheetData, judgesData]);
+
+            const duplicateRDOsSet = React.useMemo(() => {
+                const rdoValues = spreadsheetData.map(row => row['RDO'] ? row['RDO'].trim() : '').filter(Boolean);
+                const counts = {};
+                rdoValues.forEach(value => {
+                    counts[value] = (counts[value] || 0) + 1;
+                });
+
+                const duplicates = new Set();
+                for (const value in counts) {
+                    if (counts[value] > 1) {
+                        duplicates.add(value);
+                    }
+                }
+                return duplicates;
+            }, [spreadsheetData]);
+
+
+            const getRowClass = (rowData) => {
+                const selectedJudgeName = rowData['JUIZ(A)'] ? rowData['JUIZ(A)'].trim() : '';
+                const foundJudge = judgesData.find(judge => judge.name.trim() === selectedJudgeName);
+
+                if (selectedJudgeName !== '') {
+                    if (foundJudge && foundJudge.room) {
+                        return 'highlighted-row';
+                    } else {
+                        return 'filled-judge-row';
+                    }
+                }
+                return '';
+            };
+
+            const handlePrint = () => {
+                const selectedJudgeName = printJudgeSelectRef.current.value;
+                if (!selectedJudgeName) {
+                    console.error('Por favor, selecione um juiz para imprimir.');
+                    return;
+                }
+
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Planilha de Distribuição</title>');
+
+                const printCss = `
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: "Inter", sans-serif;
+                        color: #000;
+                        background-color: #fff !important;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+                    th, td {
+                        border: 1px solid #000;
+                        padding: 8px;
+                        text-align: left;
+                        background-color: #fff !important;
+                        color: #000 !important;
+                    }
+                    thead {
+                        background-color: #eee !important;
+                    }
+                    .highlighted-row td, .filled-judge-row td {
+                        background-color: #f0f0f0 !important;
+                    }
+                    .text-lg { font-size: 1.125rem; }
+                    .font-bold { font-weight: 700; }
+                    .mb-4 { margin-bottom: 1rem; }
+                    .mt-4 { margin-top: 1rem; }
+                `;
+                printWindow.document.write(`<style>${printCss}</style>`);
+                printWindow.document.write('</head><body>');
+
+                const printTable = document.createElement('table');
+                printTable.classList.add('min-w-full', 'divide-y', 'divide-gray-200');
+                
+                const printThead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                distributionColumns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col.name;
+                    th.style.padding = '8px';
+                    th.style.border = '1px solid #000';
+                    th.style.backgroundColor = '#eee';
+                    th.style.color = '#000';
+                    headerRow.appendChild(th);
+                });
+                const actionsTh = document.createElement('th');
+                actionsTh.textContent = 'AÇÕES';
+                actionsTh.style.padding = '8px';
+                actionsTh.style.border = '1px solid #000';
+                actionsTh.style.backgroundColor = '#eee';
+                actionsTh.style.color = '#000';
+                headerRow.appendChild(actionsTh);
+                printThead.appendChild(headerRow);
+                printTable.appendChild(printThead);
+
+                const printTbody = document.createElement('tbody');
+                printTbody.classList.add('bg-white', 'divide-y', 'divide-gray-200');
+                printTable.appendChild(printTbody);
+
+                let totalItemsForJudge = 0;
+
+                spreadsheetData.forEach(rowData => {
+                    if (rowData['JUIZ(A)'] && rowData['JUIZ(A)'].trim() === selectedJudgeName) {
+                        const row = document.createElement('tr');
+                        const selectedJudgeNameRow = rowData['JUIZ(A)'] ? rowData['JUIZ(A)'].trim() : '';
+                        const foundJudgeRow = judgesData.find(judge => judge.name.trim() === selectedJudgeNameRow);
+
+                        if (selectedJudgeNameRow !== '') {
+                            if (foundJudgeRow && foundJudgeRow.room) {
+                                row.classList.add('highlighted-row');
+                            } else {
+                                row.classList.add('filled-judge-row');
+                            }
+                        }
+
+                        distributionColumns.forEach(colInfo => {
+                            const cell = document.createElement('td');
+                            cell.classList.add('px-4', 'py-2', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
+                            let value = rowData[colInfo.name] !== undefined ? rowData[colInfo.name] : '';
+
+                            if (colInfo.type === 'checkbox') {
+                                cell.textContent = value === 'SIM' ? 'SIM' : 'NÃO';
+                            } else {
+                                cell.textContent = value;
+                            }
+                            row.appendChild(cell);
+                        });
+                        
+                        const emptyActionCell = document.createElement('td');
+                        emptyActionCell.classList.add('px-4', 'py-2', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
+                        row.appendChild(emptyActionCell);
+
+                        printTbody.appendChild(row);
+                        if (rowData['ITEM'] && rowData['ITEM'].trim() !== '') {
+                            totalItemsForJudge++;
+                        }
+                    }
+                });
+
+                const totalItemsParagraph = document.createElement('p');
+                totalItemsParagraph.textContent = `TOTAL DE PRESOS: ${totalItemsForJudge}`;
+                totalItemsParagraph.classList.add('text-lg', 'font-bold', 'mb-4', 'mt-4');
+                printWindow.document.body.appendChild(totalItemsParagraph);
+                printWindow.document.body.appendChild(printTable);
+
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+
+                printWindow.onload = function() {
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                    }, 500);
+                };
+            };
+
+
+            return (
+                <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-xl p-6 md:p-8">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Sistema de Distribuição de Casos</h1>
+
+                    <TabButtons activeTab={activeTab} setActiveTab={setActiveTab} />
+
+                    {activeTab === 'main-spreadsheet' && (
+                        <div id="main-spreadsheet" className="tab-content active">
+                            <PasteArea
+                                pasteTextAreaRef={pasteTextAreaRef}
+                                handleProcessPaste={handleProcessPaste}
+                            />
+                            <SpreadsheetTable
+                                filteredAndSortedSpreadsheetData={filteredAndSortedSpreadsheetData}
+                                distributionColumns={distributionColumns}
+                                handleSort={handleSort}
+                                sortConfig={sortConfig}
+                                handleFilterChange={handleFilterChange}
+                                filterValues={filterValues}
+                                judgesData={judgesData}
+                                updateSpreadsheetRow={updateSpreadsheetRow}
+                                generateCaseSummary={generateCaseSummary}
+                                deleteSpreadsheetRow={deleteSpreadsheetRow}
+                                getRowClass={getRowClass}
+                                duplicateRDOsSet={duplicateRDOsSet}
+                                handleAddRow={handleAddRow}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === 'manage-judges' && (
+                        <ManageJudges
+                            judgesData={judgesData}
+                            updateJudge={updateJudge}
+                            newJudgeNameRef={newJudgeNameRef}
+                            newJudgeRoomRef={newJudgeRoomRef}
+                            handleAddJudge={handleAddJudge}
+                        />
+                    )}
+
+                    {activeTab === 'judge-statistics' && (
+                        <JudgeStatistics judgeStatistics={judgeStatistics} />
+                    )}
+
+                    {activeTab === 'print-tab' && (
+                        <PrintTab
+                            printJudgeSelectRef={printJudgeSelectRef}
+                            judgesData={judgesData}
+                            handlePrint={handlePrint}
+                        />
+                    )}
+
+                    <CaseSummaryModal
+                        showModal={showModal}
+                        closeModal={closeModal}
+                        summaryContent={summaryContent}
+                    />
+                </div>
+            );
+        }
+
+        // Renderiza o componente App no elemento 'root'
+        window.ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
