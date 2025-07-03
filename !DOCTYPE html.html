@@ -437,7 +437,7 @@
                                             {(col.name === 'JUIZ(A)' || col.name === 'CAPTURAS' || col.name === 'OFICIO ENTREGUE') && (
                                                 <select className="filter-select" data-filter-column={col.name} onChange={(e) => handleFilterChange(col.name, e.target.value)} value={filterValues[col.name]}>
                                                     <option value="">Todos</option>
-                                                    {col.name === 'JUIZ(A)' && judgesData.map(judge => (
+                                                    {judgesData.map(judge => (
                                                         <option key={judge.id} value={judge.name}>{judge.name}</option>
                                                     ))}
                                                     {(col.name === 'CAPTURAS' || col.name === 'OFICIO ENTREGUE') && (
@@ -1159,8 +1159,11 @@
             );
         }
 
+        // Torna o componente App globalmente acessível
+        window.App = App;
+
         // Renderiza o componente App no elemento 'root'
-        window.ReactDOM.render(<App />, document.getElementById('root'));
+        window.ReactDOM.render(React.createElement(window.App), document.getElementById('root'));
     </script>
 </body>
 </html>
